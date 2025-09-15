@@ -31,6 +31,9 @@ library(tidyverse)
 library(lubridate)
 library(dplyr)
 library(ggplot2)
+library(sf)
+library(broom)
+library(effects)
 
 # Data Read
 rats_raw <- read_csv("Rat_sightings.csv", na = c("", "NA", "N/A"))
@@ -125,78 +128,189 @@ ggplot(rats_summary, aes(x = sighting_year, y = sightings, color = borough)) +
        color = "Borough")
 ```
 
-After doing trend analysis, we can say that:
-
-- Brooklyn had the biggest increase in rat sightings, reaching its highest point in 2017.
-
-- Manhattan and Bronx showed consistent growth in rat numbers over time.
-
-- Rat sightings went down in 2020, probably because of COVID-19 pandemic changes.
-
-This pattern analysis shows we need different rat control plans for each borough, rather than using one approach for the whole city.
-
-\newpage
-
-
-![](Rplot.png)
-
-The scatter plot above shows as average household income of locations of interest go up, there are more rat sitings during that month.
-
-This may seem counterintuitive at first as lower income locations could be expected to have higher quantities of rats, but this could be because a variety of reasons found in higher income locations. One major reason that could explain this result is the fact that higher income regions have more pest control efforts, which could artificially raise the sitings compared to lower income areas. Additionally, higher income areas have more restaurants which can create a food source for rats.
-
-Therefore, this result points to a potential need for increased rat monitoring measures in low income areas and further investigation into whether or not the higher quantity of sightings in high income areas is accurate to their need for rat control methods.
-
-\newpage
-
-## **Policy Recommendations**
-
-### **Recommendations for the Mayor's Office**
-
-Based on the data analysis, we recommend:
-
-1. **Better Trash Management Where Rats Are Common**
-
-   - Collect garbage more often in Brooklyn, Bronx, and Manhattan.
-   - Add more trash bins in crowded areas.
-   
-2. **Tougher Rules for Restaurants & Building Sites**
-
-   - Do more health inspections.
-   - Make construction sites use rat control methods.
-   
-3. **Teaching the Public & Encouraging Reports**
-
-   - Show people why reporting rats on weekends matters.
-   - Provide incentive/reward to neighborhoods that stay clean and rat-free.
-   
-4. **Focused Rat Control Efforts**
-
-   - Increase baiting and killing rats near subways and construction.
-   - Schedule more pest control work on Mondays and Tuesdays when complaints peak.
-
-\newpage
-
-## **Part 2** 
-
-### **Data Hunting**
-
-### Following are the different data sources for potential use in our final project:
-
-### **Annual mean wage for All Occupations in All Industries in the United States**
-
-https://data.bls.gov/dataQuery/find?fq=survey:%5Boe%5D&s=popularity:D
-
-The first dataset comes from the US Bureau of Labor and Statistics, and it displays the annual mean wage for all occupations. Some general question s we may be able to answer using this data are what jobs are predicted to increase or decrease in the future? What jobs currently have the highest rate of change of payment? Can we predict what someones wage will be given their occupation? To what degree? How much does the wage vary based on location?  Given demographic indicatiors, we could also check to see if the mean wage varies at all based on certain characteristics. 
-
-### **FBI Crim Reporting Statistics**
-
-https://cde.ucr.cjis.gov/
-
-This dataset comes fro mthe FBI Crime Data Explorere. It shows crime data in specific areas throughout the country over time. With this data, we could answer questions such as what areas experience crime most often? Could we predict where crime is likely to happen next based on past data? Are there specific law or circumstance changes that may have reduced or increased crime in a specific area? Is unemployment related to crime rates? Does higher crime rate effect other variables such as standard of living, house prices, etc? We could do a time series regression on the data to theoretically help predict where to allocate resources.
+```{r}
+Zip_Code_Raw <- read_csv("Modified_Zip_Code_Tabulation_Areas__MODZCTA_.csv")
+income <- read_csv("income_data.csv") %>%
+  rename(ZIP = geoid, Median_Income = B19013001)
+pop <- read_csv("populations.csv") %>%
+  rename(ZIP = geoid, Population = B01003001)
+merged <- income %>%
+  inner_join(pop, by = "ZIP") %>%
+   filter(!is.na(Median_Income), !is.na(Population)) %>%
+  select(-"B01003001, Error", -"B19013001, Error")
 
 
-### **EPA Air Quality Data**
+merged <- dplyr::select(merged, -ZIP, -name.y) %>%
+  rename(ZIP = name.x)
+merged <- merged %>%
+  filter(Population > 10000)
 
-https://aqs.epa.gov/aqsweb/airdata/download_files.html
 
-This dataset comes from the EPA and shows the Air Quality Index per county in the US per year. With this data we can answer general questions such as what areas experience the worst air quality? Are these areas near specific centers of industry or populations? Is better air quality more common at certain times? Can you predict what the air quality will be given certain policies of a county? Is there a relationship between air pollution levels and respiratory issues? At what level do you see a real impact?
+
+names(Zip_Code_Raw)[1] <- ("Zip")
+
+```
+
+
+```{r}
+merged <- merged %>%
+  filter(!ZIP %in% c("New York, NY"))
+```
+
+
+```{r}
+print(merged)
+```
+
+
+```{r}
+rats_zip_time <- rats_clean %>%
+  mutate(
+    created = as.Date(created_date),
+    Year = year(created),
+    ZIP = stringr::str_extract(`Incident Zip`, "\\d{5}")
+  ) %>%
+  filter(!is.na(ZIP), ZIP != "00000")
+```
+
+
+```{r}
+rat_yearly <- rats_clean %>%
+  mutate(
+    created = as.Date(created_date),
+    Year = year(created),
+    ZIP = stringr::str_extract(`Incident Zip`, "\\d{5}")
+  ) %>%
+  filter(!is.na(ZIP), ZIP != "00000") %>%
+  group_by(ZIP, Year, borough) %>%   # <-- include borough here
+  summarise(Sightings = n(), .groups = "drop")
+
+```
+
+```{r}
+full_dataset <- rat_yearly %>%
+  group_by(ZIP) %>%
+  summarise(
+    Avg_Sightings_per_Year = mean(Sightings),
+    borough = first(borough),              # keep borough
+    .groups = "drop"
+  ) %>%
+  inner_join(merged, by = "ZIP") %>%
+  mutate(
+    Sightings_per_1000_per_Year = Avg_Sightings_per_Year / Population * 1000
+  )
+```
+
+
+```{r}
+zips_sf <- st_as_sf(Zip_Code_Raw, wkt = "the_geom", crs = 4326)
+zips_sf$Zip <- as.character(zips_sf$Zip)
+zips_sf <- st_make_valid(zips_sf)
+ggplot(zips_sf) +
+  geom_sf(fill = "grey95", color = "grey30", size = 0.2) +
+  coord_sf(expand = FALSE) +
+  theme_void(base_size = 12) +
+  labs(title = "NYC ZIP Code Boundaries", caption = "Source: NYC Open Data")
+```
+
+```{r}
+zips_sf <- zips_sf %>%
+#rename(ZIP = Zip) %>%             # rename if needed
+  mutate(ZIP = as.character(ZIP))
+
+full_dataset <- full_dataset %>%
+  mutate(ZIP = as.character(ZIP))
+```
+
+```{r}
+full_dataset_sf <- full_dataset %>%
+  left_join(
+    zips_sf %>% select(ZIP, the_geom),
+    by = "ZIP"
+  ) %>%
+  st_as_sf()
+
+```
+
+
+```{r}
+full_dataset_sf <- st_transform(full_dataset_sf, 2263)
+
+
+full_dataset_sf <- full_dataset_sf %>%
+  mutate(
+    area_sqft = as.numeric(st_area(the_geom)),         # square feet
+    area_sqmi = area_sqft / (5280^2),                  # convert to square miles
+    area_sqkm = area_sqft / 10.7639 / 1e6,             # convert to square km
+    pop_density_sqmi = Population / area_sqmi,         # people per square mile
+    pop_density_sqkm = Population / area_sqkm          # people per square km
+  )
+
+
+
+```
+
+
+```{r}
+full_dataset_sf <- full_dataset_sf %>%
+  filter(!ZIP %in% c(11001, 11040, 11249))
+```
+
+
+```{r}
+
+
+
+m_ols <- lm(Sightings_per_1000_per_Year ~ Median_Income + pop_density_sqkm, 
+            data = full_dataset_sf)
+
+summary(m_ols)
+```
+
+
+```{r}
+zips_keep <- unique(full_dataset_sf$ZIP)
+rats_filtered <- rat_yearly %>%
+  filter(ZIP %in% zips_keep)
+
+```
+
+```{r}
+zip_density <- full_dataset_sf %>%
+  st_drop_geometry() %>%
+  select(ZIP, Sightings_per_1000_per_Year, pop_density_sqkm, Median_Income)
+
+rats_with_density <- rats_filtered %>%
+  left_join(zip_density, by = "ZIP")
+
+head(rats_with_density)
+```
+
+```{r}
+m_year_borough <- lm(
+  Sightings_per_1000_per_Year ~ Median_Income + pop_density_sqkm +
+    factor(Year) + factor(borough),
+  data = rats_with_density
+)
+
+
+
+tidy(m_year_borough, conf.int = TRUE) %>%
+  filter(term %in% c("Median_Income", "pop_density_sqkm", 
+                     "factor(borough)BROOKLYN", 
+                     "factor(borough)MANHATTAN", 
+                     "factor(borough)QUEENS", 
+                     "factor(borough)STATEN ISLAND")) %>%
+  ggplot(aes(x = term, y = estimate, ymin = conf.low, ymax = conf.high)) +
+  geom_pointrange() +
+  coord_flip() +
+  labs(x = "", y = "Coefficient estimate",
+       title = "Effect of Income, Density, and Borough on Rat Sightings")
+```
+
+
+```{r}
+library(car)
+avPlots(m_year_borough, terms = ~ pop_density_sqkm + Median_Income)
+```
+
