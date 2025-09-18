@@ -1,6 +1,8 @@
 ---
 title: "Urban Density And Rat Sightings: Evidence from New York City Zip Codes"
 author: "John Scheble"
+project:
+    type: website 
 format:
   html:
     theme: cosmo

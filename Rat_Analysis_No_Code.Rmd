@@ -1,6 +1,8 @@
 ---
 title: "Urban Density And Rat Sightings: Evidence from New York City Zip Codes"
 author: "John Scheble"
+project:
+    type: website 
 format:
   html:
     theme: cosmo
@@ -10,7 +12,7 @@ format:
 execute:
   message: false
   warning: false
-  echo: true  
+  echo: false  
 ---
 
 **This report explores NYC rat sightings by ZIP, linking complaints to population, income, and area to get density-adjusted rates. Goal is to work with sightings per 1000 residents and population density to comapre neighborhoods fairly. Data is from NYC 3-1-1 Rat Complaints.**
