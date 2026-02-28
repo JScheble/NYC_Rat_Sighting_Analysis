@@ -4,7 +4,7 @@
 
 # Session Data files
 .RData
-.RDataTmp
+.RDataTmp*
 
 # User-specific files
 .Ruserdata
@@ -47,5 +47,12 @@ po/*~
 # RStudio Connect folder
 rsconnect/
 
-# Data files
+# Data files (source data too large for version control — see README for sources)
 *.csv
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
