@@ -1,59 +1,148 @@
 ---
 title: "Urban Density And Rat Sightings: Evidence from New York City Zip Codes"
 author: "John Scheble"
-project:
-    type: website 
 format:
   html:
-    theme: cosmo
     toc: true
-    toc-depth: 2
-    number-sections: true
+    toc-location: left
+    toc-depth: 3
+    code-fold: true
+    theme: cosmo
+    smooth-scroll: true
+    number-sections: false
+    include-after-body: toggle_button.html
+    css: styles.css
 execute:
   message: false
   warning: false
-  echo: true  
+  echo: true
 ---
 
-**This report explores NYC rat sightings by ZIP, linking complaints to population, income, and area to get density-adjusted rates. Goal is to work with sightings per 1000 residents and population density to comapre neighborhoods fairly. Data is from NYC 3-1-1 Rat Complaints.**
+**Which New York City neighborhoods have a rat problem, and why? Using 311 complaint data linked to Census population and income figures, this report constructs density-adjusted sighting rates across ZIP codes to answer that question fairly, controlling for the fact that denser neighborhoods will always generate more raw complaints.**
 
 
 
-# **Data Processing & Cleaning**
+## Findings at a Glance
 
-The dataset was cleaned by standardizing date formats, extracting relevant time-based variables, and filtering out missing borough data to ensure accurate analysis.
+NYC rat complaint data from 311 reports reveals a clear relationship between urban density and rat sightings across the city's ZIP codes. **Brooklyn and Manhattan** consistently logged the highest complaint volumes over the study period, while **Staten Island** remained relatively low throughout. Adjusting for population, denser ZIP codes report meaningfully more rat sightings per capita. The relationship between density and sightings produced a **moderate positive correlation (R = 0.45)** that holds even after controlling for borough-level differences. By contrast, **median household income showed no statistically significant relationship** with sighting rates, suggesting that **density, not wealth**, is the primary driver of rat complaints at the ZIP code level.
+
+
+## Data Processing & Cleaning
+
 
 ```{r setup, echo=FALSE, warning=FALSE}
 # Packages that we will be using
-library(tidyverse); library(lubridate); library(dplyr); library(ggplot2); library(sf); library(broom); library(effects); library(ggokabeito); library(ggtext); library(ggrepel); library(ggpubr); library(scales); library(knitr); library(kableExtra); library(viridis); library(classInt); library(performance); library(see); library(gtsummary); library(modelsummary)
+library(tidyverse); library(lubridate); library(dplyr); library(ggplot2); library(sf); library(broom); library(effects); library(ggokabeito); library(ggtext); library(ggrepel); library(ggpubr); library(scales); library(knitr); library(kableExtra); library(viridis); library(classInt); library(performance); library(see); library(gtsummary); library(modelsummary); library(DBI); library(RSQLite);
 ```
 
-```{r, echo=FALSE, message=FALSE}
-# Data Read and Renaming
-rats_raw <- read_csv("Rat_sightings.csv", na = c("", "NA", "N/A"))
+### Data Origins
+
+The data from this report comes from a few different locations. 
+
+1. 311 Rat Sightings (rats_raw, rats_clean) - https://data.cityofnewyork.us/Social-Services/Rat-Sightings/3q43-55fe/about_data
+- This data can be found on NYC Open Data, directly from the NYC Office of Technology and Innovation (OTI). This dataset notes all rat sightings with descriptive details.
+
+2. Zip Code Shapefile (Zip_code_raw) - https://data.cityofnewyork.us/Health/Modified-Zip-Code-Tabulation-Areas-MODZCTA-/pri4-ifjk/about_data
+- This data can also be found on NYC Open Data, allowing us to correctly map the boundaries of New York City's Zip codes. 
+
+3. Income data (income) - https://censusreporter.org/data/table/?table=B19013&geo_ids=860|16000US3651000&primary_geo_id=16000US3651000
+- This is Median Household Income in the Past 12 Months (In 2024 Inflation-adjusted Dollars) for all zip codes in New York, NY. Data sourced by Census Reporter.
+
+4. Population Data (pop) - https://censusreporter.org/data/table/?table=B01003&geo_ids=860|16000US3651000&primary_geo_id=16000US3651000#
+- This is Total Population for all zip codes in New York, NY. Data sourced by Census Reporter.
+
+
+```{r}
+#Loading in datasets
+
+rats_raw <- read_csv("Rat_Sightings_20260227.csv", na = c("", "NA", "N/A"))
+
 rats_clean <- rats_raw %>%
   rename(created_date = `Created Date`,
          location_type = `Location Type`,
          borough = Borough) %>%
-  mutate(created_date = mdy_hms(created_date)) %>%
+  mutate(created_date = as.POSIXct(strptime(created_date, "%Y %b %d %I:%M:%S %p"))) %>%
   mutate(sighting_year = year(created_date),
          sighting_month = month(created_date),
          sighting_day = day(created_date),
          sighting_weekday = wday(created_date, label = TRUE, abbr = FALSE)) %>%
   filter(borough != "Unspecified")
+
+Zip_Code_Raw <- read_csv("Modified_Zip_Code_Tabulation_Areas__MODZCTA_.csv")
+names(Zip_Code_Raw)[1] <- ("Zip")
+
+income <- read_csv("acs2024_5yr_B19013_86000US11423.csv") %>%
+  rename(ZIP = geoid, Median_Income = B19013001)
+
+pop <- read_csv("acs2024_5yr_B01003_86000US11423.csv") %>%
+  rename(ZIP = geoid, Population = B01003001)
+
+
 ```
 
-# Tile Heat Map by Borough by Year
+
+
+
+
+
+```{r sql-setup, message=FALSE}
+# Connect to in-memory SQLite database
+con <- dbConnect(RSQLite::SQLite(), ":memory:")
+
+# Load raw data into SQLite as tables
+dbWriteTable(con, "rat_sightings", rats_clean)
+dbWriteTable(con, "income",        income)
+dbWriteTable(con, "population",    pop)
+
+# Read, clean and split the .sql file into individual queries
+sql_lines   <- readLines("queries.sql")
+sql_lines   <- sql_lines[!grepl("^\\s*--", sql_lines)]
+sql_text    <- paste(sql_lines, collapse = "\n")
+sql_queries <- strsplit(sql_text, ";")[[1]]
+sql_queries <- trimws(sql_queries)
+sql_queries <- sql_queries[nchar(sql_queries) > 0]
+
+# Execute each query and assign to named variables
+rats_summary <- dbGetQuery(con, sql_queries[[1]])  # borough/year aggregation
+rat_yearly   <- dbGetQuery(con, sql_queries[[2]])  # ZIP/year/borough aggregation
+full_dataset <- dbGetQuery(con, sql_queries[[3]])  # joined ZIP summary
+
+dbDisconnect(con)
+```
+
+
+```{r spatial-setup}
+# Load shapefile and clean up
+zips_sf <- st_as_sf(Zip_Code_Raw, wkt = "the_geom", crs = 4326) %>%
+  st_make_valid() %>%
+  rename(ZIP = Zip) %>%
+  mutate(ZIP = as.character(ZIP))
+
+# Join geometry to full_dataset
+full_dataset_sf <- full_dataset %>%
+  mutate(ZIP = as.character(ZIP)) %>%
+  left_join(zips_sf %>% select(ZIP, the_geom), by = "ZIP") %>%
+  st_as_sf() %>%
+  filter(!ZIP %in% c(11001, 11040, 11249)) %>%
+  st_transform(2263) %>%
+  mutate(
+    area_sqft        = as.numeric(st_area(the_geom)),
+    area_sqmi        = area_sqft / (5280^2),
+    area_sqkm        = area_sqft / 10.7639 / 1e6,
+    pop_density_sqmi = Population / area_sqmi,
+    pop_density_sqkm = Population / area_sqkm
+  )
+```
+
+
+## Tile Heat Map by Borough by Year
+
 
 ```{r}
-#Summarize the sightings by borough
-rats_summary <- rats_clean %>%
-  group_by(borough, sighting_year) %>%
-  summarise(sightings = n(), .groups = "drop")
 # Heatmap
-ggplot(rats_summary, aes(x = sighting_year, y = borough, fill = sightings)) +
+ggplot(rats_summary, aes(x = Year, y = borough, fill = Sightings)) +
   geom_tile(color = "white") +  
-  geom_text(aes(label = sightings), color = "black", size = 4) +  
+  geom_text(aes(label = Sightings), color = "black", size = 4) +  
   scale_fill_gradient(low = "white", high = "darkred") + 
   theme_minimal() +
   labs(title = "Heatmap of Rat Sightings in NYC by Borough and Year",
@@ -77,139 +166,28 @@ The heatmap shows the following:
 
 Based on this, we can say that pest control teams should concentrate their efforts in the boroughs with the highest number of rats, mainly Brooklyn and Manhattan.
 
-# Rat Sightings Per Borough Over Time
+## Rat Sightings Per Borough Over Time
 
 ```{r}
 # Line plot
-ggplot(rats_summary, aes(x = sighting_year, y = sightings, color = borough)) +
+ggplot(rats_summary %>% filter(Year < 2026), 
+       aes(x = Year, y = Sightings, color = borough)) +
   geom_line(linewidth = 1) +
   geom_point() +
   theme_minimal() +
-  labs(title = "Trend of Rat Sightings in NYC (2010-2020)",
+  labs(title = paste("Trend of Rat Sightings in NYC (", 
+                     min(rats_summary$Year), "-", 
+                     max(rats_summary$Year[rats_summary$Year < 2026]), ")"),
        x = "Year",
        y = "Number of Sightings",
        color = "Borough")
 ```
 
-The above graph illustrates the large and steady quantity difference in rat sightings between boroughs over time. We see that Brooklyn has consistently had the largest number of rat sightings for each year recorded, followed by Manhattan, Bronx, Queens and Staten Island Respectively. Over time, there hasnt been much change in this order, with queens slightly overtaking the bronx in 2020. Also, between 2013 and 2018 there seemed to be an large influx of rat sightings across the board (excluding Staten Island which remained relatively unchanged.)
-
-```{r, echo=FALSE, warning=FALSE, message=FALSE}
-#Adding extra zip code df, median family income by zip, and zip populations.
-Zip_Code_Raw <- read_csv("Modified_Zip_Code_Tabulation_Areas__MODZCTA_.csv")
-income <- read_csv("income_data.csv") %>%
-  rename(ZIP = geoid, Median_Income = B19013001)
-pop <- read_csv("populations.csv") %>%
-  rename(ZIP = geoid, Population = B01003001)
-merged <- income %>%
-  inner_join(pop, by = "ZIP") %>%
-   filter(!is.na(Median_Income), !is.na(Population)) %>%
-  select(-"B01003001, Error", -"B19013001, Error")
-
-#Merged
-merged <- dplyr::select(merged, -ZIP, -name.y) %>%
-  rename(ZIP = name.x)
-merged <- merged %>%
-  filter(Population > 10000)
+The above graph illustrates the large and steady quantity difference in rat sightings between boroughs over time. We see that Brooklyn has consistently had the largest number of rat sightings for each year recorded, followed by Manhattan, Bronx, Queens and Staten Island respectively. Over time, there hasn't been much change in this order, with Queens and the Bronx close for 3rd place. 
 
 
 
-names(Zip_Code_Raw)[1] <- ("Zip")
-
-```
-
-```{r}
-#Remove extra row
-merged <- merged %>%
-  filter(!ZIP %in% c("New York, NY"))
-```
-
-```{r}
-#Reclean First Rat Dataset
-rats_zip_time <- rats_clean %>%
-  mutate(
-    created = as.Date(created_date),
-    Year = year(created),
-    ZIP = stringr::str_extract(`Incident Zip`, "\\d{5}")
-  ) %>%
-  filter(!is.na(ZIP), ZIP != "00000")
-```
-
-```{r}
-#Sighting per year per bourough dataset
-rat_yearly <- rats_clean %>%
-  mutate(
-    created = as.Date(created_date),
-    Year = year(created),
-    ZIP = stringr::str_extract(`Incident Zip`, "\\d{5}")
-  ) %>%
-  filter(!is.na(ZIP), ZIP != "00000") %>%
-  group_by(ZIP, Year, borough) %>%   # <-- include borough here
-  summarise(Sightings = n(), .groups = "drop")
-
-```
-
-```{r}
-#Combined Dataset
-full_dataset <- rat_yearly %>%
-  group_by(ZIP) %>%
-  summarise(
-    Avg_Sightings_per_Year = mean(Sightings),
-    borough = first(borough),              # keep borough
-    .groups = "drop"
-  ) %>%
-  inner_join(merged, by = "ZIP") %>%
-  mutate(
-    Sightings_per_1000_per_Year = Avg_Sightings_per_Year / Population * 1000
-  )
-```
-
-```{r}
-#loading in zip shapefile
-zips_sf <- st_as_sf(Zip_Code_Raw, wkt = "the_geom", crs = 4326)
-zips_sf$Zip <- as.character(zips_sf$Zip)
-zips_sf <- st_make_valid(zips_sf)
-```
-
-```{r}
-#Adding geometry to zips
-zips_sf <- zips_sf %>%
-rename(ZIP = Zip) %>%             
- mutate(ZIP = as.character(ZIP))
-
-full_dataset <- full_dataset %>%
-  mutate(ZIP = as.character(ZIP))
-```
-
-```{r}
-#Adding geometry to full dataset
-full_dataset_sf <- full_dataset %>%
-  left_join(
-    zips_sf %>% select(ZIP, the_geom),
-    by = "ZIP"
-  ) %>%
-  st_as_sf()
-
-full_dataset_sf <- full_dataset_sf %>%
-  filter(!ZIP %in% c(11001, 11040, 11249))
-```
-
-```{r}
-#Calculating area of zip codes in sqft, miles, sqkm, and then pop density
-full_dataset_sf <- st_transform(full_dataset_sf, 2263)
-
-
-full_dataset_sf <- full_dataset_sf %>%
-  mutate(
-    area_sqft = as.numeric(st_area(the_geom)),         # square feet
-    area_sqmi = area_sqft / (5280^2),                 #Square Miles
-    area_sqkm = area_sqft / 10.7639 / 1e6,             #square km
-    pop_density_sqmi = Population / area_sqmi,         #people per square mile
-    pop_density_sqkm = Population / area_sqkm          #people per square km
-  )
-```
-
-
-# Choropleth Map of Sightings
+## Choropleth Map of Sightings
 
 ```{r}
 #Create heatmap with zip plotting
@@ -237,26 +215,23 @@ p_cont <- ggplot(full_dataset_sf_plot) +
   ) +
   theme_void(base_size = 12) +
   theme(
-    legend.title = element_text(size = 12, face = "bold"),  # bigger title
-    legend.text  = element_text(size = 11),                 # bigger labels
-    legend.key.width = unit(0.4, "cm"),                     # shrink key width
-    legend.key.height = unit(0.8, "cm")                     # taller key
-  )
+    legend.position = "right",
+    legend.title = element_text(size = 16, face = "bold"),
+    legend.text  = element_text(size = 14)
+  ) +
+  guides(fill = guide_colorbar(title.position = "top",
+                               barheight = unit(6, "cm"),
+                               barwidth  = unit(0.8, "cm")))
 ```
 
 
-
-```{r}
-#| fig-width: 10
-#| fig-height: 8
-#| fig-cap: "Rat sightings per 1,000 residents by ZIP"
-#| out-width: 100%
-p_cont   # <- simply print the ggplot object
+```{r, fig.width=14, fig.height=11, fig.cap="Rat sightings per 1,000 residents by ZIP", out.width="100%"}
+p_cont
 ```
 
-The above heat map illustrates exactly where rat sightings are in the 5 bouroughs. It is calculated by averaging total rat calls by the 10 years the data was collected, then adjusting per 1000 people in order to standardize for population.
+The above heat map illustrates exactly where rat sightings are in the 5 boroughs. It is calculated by averaging total rat calls by the 5 years the data was collected, then adjusting per 1000 people in order to standardize for population.
 
-# Regression Model Results
+## Regression Model Results
 
 ```{r}
 
@@ -286,24 +261,20 @@ modelsummary(
 )
 ```
 
-The results from regression shows that population density is positively associated with complaint rates. In the baseline model, a 1,000 person/km\^2 increase in density predicts +0.040 additional sightings per 1,000 residents per year. When you add Boroughs as fixed effects, this effect by population density decreases to 0.029. Median income is indistinguishable from zero across models, and is not statistically signifigant. Adding borough indicators imrpoved the fit from r: 0.197 to 0.301. Estimates are descriptive.
+The regression results confirm that population density is positively associated with rat complaint rates. In the baseline model, **a 1,000 person/km² increase in density predicts +0.068 additional sightings per 1,000 residents per year** (p < 0.001). Adding borough fixed effects slightly reduces this to 0.062 (p < 0.001), suggesting the density effect is robust even after accounting for borough-level differences. Median income is indistinguishable from zero across both model specifications and is not statistically significant. Adding borough indicators improved model fit from R² = 0.227 to 0.309. Estimates are descriptive rather than causal.
 
 ```{r}
-#Filter and create new dataset with key columns
-zips_keep <- unique(full_dataset_sf$ZIP)
-rats_filtered <- rat_yearly %>%
-  filter(ZIP %in% zips_keep)
-
 zip_density <- full_dataset_sf %>%
   st_drop_geometry() %>%
-  select(ZIP, Sightings_per_1000_per_Year, pop_density_sqkm, Median_Income)
+  select(ZIP, Sightings_per_1000_per_Year, pop_density_sqkm, Median_Income) %>%
+  distinct(ZIP, .keep_all = TRUE)
 
-rats_with_density <- rats_filtered %>%
+rats_with_density <- rat_yearly %>%
+  filter(ZIP %in% zip_density$ZIP) %>%
   left_join(zip_density, by = "ZIP")
-
 ```
 
-# Correlation Scatterplot
+## Correlation Scatterplot
 
 ```{r}
 #Correlation scatterplot
@@ -326,7 +297,7 @@ ggscatter(
 
 Denser ZIP codes report more rat sightings per capita. The relationship is moderate and positive (R = 0.45), consistent with the fitted line and confidence band. Dispersion widens at higher densities, so effects are not uniform across neighborhoods.
 
-# Correlation of Sightings with Density vs Income
+## Correlation of Sightings with Density vs Income
 
 ```{r}
 #1st plot density vs sightings
@@ -364,7 +335,7 @@ p_income <- ggscatter(
   theme(legend.position = "none")
 
 
-# Sie by SIde for dramatic effect
+# Side by Side for dramatic effect
 paired <- ggarrange(
   p_density, p_income,
   ncol = 2, nrow = 1,
@@ -382,12 +353,9 @@ annotate_figure(
 
 Panel A shows a clear, positive association: denser ZIPs tend to report more rat sightings per capita. The spread widens at higher densities (fan shape), so variance is larger in dense areas—reason to use robust SEs in regressions. Panel B is essentially flat: income is not correlated with sightings in these data (R ≈ 0, p ≈ 0.99). Any relationship between income and complaints is either negligible or swamped by other factors like density, building stock, or reporting behavior.
 
-# Mapped Excess Rat Sightngs Relative to Density
-```{r}
-#| label: residual-map
-#| fig-width: 10
-#| fig-height: 8
-#| out-width: 100%
+## Mapped Excess Rat Sightings Relative to Density
+```{r residual-map, fig.width=14, fig.height=11, out.width="100%"}
+
 
 library(colorspace)
 
@@ -417,13 +385,18 @@ scale_fill_continuous_divergingx(
   ) +
   theme_void() +
   theme(
-    legend.position = "right",
-    legend.title = element_text(size = 11, face = "bold"),
-    legend.text  = element_text(size = 10)
-  ) +
-  guides(fill = guide_colorbar(title.position = "top",
-                               barheight = unit(4, "cm"),
-                               barwidth  = unit(0.5, "cm")))
+    legend.title = element_text(size = 16, face = "bold"),
+    legend.text  = element_text(size = 14),
+    legend.key.width = unit(0.6, "cm"),
+    legend.key.height = unit(1.2, "cm")
+  )
 ```
 
 This map highlights where sightings are unusually high or low after accounting for density. Dark purples represent ZIPs that have larger than expected complaint rates given how dense they are, while oranges mark places that report less than expected. Clustering suggests localized conditions like building stock, sanitation practices, enforcement, or reporting behavior influence sightings instead of density alone.
+
+
+## Conclusions
+
+**Population density is the strongest predictor of rat complaint rates across NYC ZIP codes**. A regression model controlling for borough fixed effects finds that each **1,000 person/km² increase in density** is associated with approximately **0.062 additional sightings per 1,000 residents per year**. Controlling for borough provided additional variation beyond density alone. This points to localized factors such as building stock, sanitation infrastructure, and reporting behavior that density alone cannot capture. Median income adds no explanatory power across either model specification.
+
+These results suggest pest control resources would be most efficiently directed toward **high-density neighborhoods in Brooklyn and Manhattan**. However, the residual map highlights that **certain ZIP codes report far more or fewer sightings than their density would predict**. This would suggest targeted local investigations are warranted instead of broad density-based allocation. Results should be interpreted as **descriptive rather than causal**.

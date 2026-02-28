@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.27">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="John Scheble">
+
+<title>Urban Density And Rat Sightings: Evidence from New York City Zip Codes</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="Rat_Analysis_files/libs/clipboard/clipboard.min.js"></script>
+<script src="Rat_Analysis_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="Rat_Analysis_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="Rat_Analysis_files/libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="Rat_Analysis_files/libs/quarto-html/popper.min.js"></script>
+<script src="Rat_Analysis_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="Rat_Analysis_files/libs/quarto-html/anchor.min.js"></script>
+<link href="Rat_Analysis_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="Rat_Analysis_files/libs/quarto-html/quarto-syntax-highlighting-ed96de9b727972fe78a7b5d16c58bf87.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="Rat_Analysis_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="Rat_Analysis_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="Rat_Analysis_files/libs/bootstrap/bootstrap-4d7f0bce1131f3e5f9547cd857cfbfc8.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<style>html{ scroll-behavior: smooth; }</style>
+
+
+<link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article toc-left">
+<div id="quarto-sidebar-toc-left" class="sidebar toc-left">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#findings-at-a-glance" id="toc-findings-at-a-glance" class="nav-link active" data-scroll-target="#findings-at-a-glance">Findings at a Glance</a></li>
+  <li><a href="#data-processing-cleaning" id="toc-data-processing-cleaning" class="nav-link" data-scroll-target="#data-processing-cleaning">Data Processing &amp; Cleaning</a>
+  <ul class="collapse">
+  <li><a href="#data-origins" id="toc-data-origins" class="nav-link" data-scroll-target="#data-origins">Data Origins</a></li>
+  </ul></li>
+  <li><a href="#tile-heat-map-by-borough-by-year" id="toc-tile-heat-map-by-borough-by-year" class="nav-link" data-scroll-target="#tile-heat-map-by-borough-by-year">Tile Heat Map by Borough by Year</a></li>
+  <li><a href="#rat-sightings-per-borough-over-time" id="toc-rat-sightings-per-borough-over-time" class="nav-link" data-scroll-target="#rat-sightings-per-borough-over-time">Rat Sightings Per Borough Over Time</a></li>
+  <li><a href="#choropleth-map-of-sightings" id="toc-choropleth-map-of-sightings" class="nav-link" data-scroll-target="#choropleth-map-of-sightings">Choropleth Map of Sightings</a></li>
+  <li><a href="#regression-model-results" id="toc-regression-model-results" class="nav-link" data-scroll-target="#regression-model-results">Regression Model Results</a></li>
+  <li><a href="#correlation-scatterplot" id="toc-correlation-scatterplot" class="nav-link" data-scroll-target="#correlation-scatterplot">Correlation Scatterplot</a></li>
+  <li><a href="#correlation-of-sightings-with-density-vs-income" id="toc-correlation-of-sightings-with-density-vs-income" class="nav-link" data-scroll-target="#correlation-of-sightings-with-density-vs-income">Correlation of Sightings with Density vs Income</a></li>
+  <li><a href="#mapped-excess-rat-sightings-relative-to-density" id="toc-mapped-excess-rat-sightings-relative-to-density" class="nav-link" data-scroll-target="#mapped-excess-rat-sightings-relative-to-density">Mapped Excess Rat Sightings Relative to Density</a></li>
+  <li><a href="#conclusions" id="toc-conclusions" class="nav-link" data-scroll-target="#conclusions">Conclusions</a></li>
+  </ul>
+</nav>
+</div>
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Urban Density And Rat Sightings: Evidence from New York City Zip Codes</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>John Scheble </p>
+          </div>
+  </div>
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p><strong>Which New York City neighborhoods have a rat problem, and why? Using 311 complaint data linked to Census population and income figures, this report constructs density-adjusted sighting rates across ZIP codes to answer that question fairly, controlling for the fact that denser neighborhoods will always generate more raw complaints.</strong></p>
+<section id="findings-at-a-glance" class="level2">
+<h2 class="anchored" data-anchor-id="findings-at-a-glance">Findings at a Glance</h2>
+<p>NYC rat complaint data from 311 reports reveals a clear relationship between urban density and rat sightings across the city’s ZIP codes. <strong>Brooklyn and Manhattan</strong> consistently logged the highest complaint volumes over the study period, while <strong>Staten Island</strong> remained relatively low throughout. Adjusting for population, denser ZIP codes report meaningfully more rat sightings per capita. The relationship between density and sightings produced a <strong>moderate positive correlation (R = 0.45)</strong> that holds even after controlling for borough-level differences. By contrast, <strong>median household income showed no statistically significant relationship</strong> with sighting rates, suggesting that <strong>density, not wealth</strong>, is the primary driver of rat complaints at the ZIP code level.</p>
+</section>
+<section id="data-processing-cleaning" class="level2">
+<h2 class="anchored" data-anchor-id="data-processing-cleaning">Data Processing &amp; Cleaning</h2>
+<section id="data-origins" class="level3">
+<h3 class="anchored" data-anchor-id="data-origins">Data Origins</h3>
+<p>The data from this report comes from a few different locations.</p>
+<ol type="1">
+<li>311 Rat Sightings (rats_raw, rats_clean) - https://data.cityofnewyork.us/Social-Services/Rat-Sightings/3q43-55fe/about_data</li>
+</ol>
+<ul>
+<li>This data can be found on NYC Open Data, directly from the NYC Office of Technology and Innovation (OTI). This dataset notes all rat sightings with descriptive details.</li>
+</ul>
+<ol start="2" type="1">
+<li>Zip Code Shapefile (Zip_code_raw) - https://data.cityofnewyork.us/Health/Modified-Zip-Code-Tabulation-Areas-MODZCTA-/pri4-ifjk/about_data</li>
+</ol>
+<ul>
+<li>This data can also be found on NYC Open Data, allowing us to correctly map the boundaries of New York City’s Zip codes.</li>
+</ul>
+<ol start="3" type="1">
+<li>Income data (income) - https://censusreporter.org/data/table/?table=B19013&amp;geo_ids=860|16000US3651000&amp;primary_geo_id=16000US3651000</li>
+</ol>
+<ul>
+<li>This is Median Household Income in the Past 12 Months (In 2024 Inflation-adjusted Dollars) for all zip codes in New York, NY. Data sourced by Census Reporter.</li>
+</ul>
+<ol start="4" type="1">
+<li>Population Data (pop) - https://censusreporter.org/data/table/?table=B01003&amp;geo_ids=860|16000US3651000&amp;primary_geo_id=16000US3651000#</li>
+</ol>
+<ul>
+<li>This is Total Population for all zip codes in New York, NY. Data sourced by Census Reporter.</li>
+</ul>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Loading in datasets</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>rats_raw <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"Rat_Sightings_20260227.csv"</span>, <span class="at">na =</span> <span class="fu">c</span>(<span class="st">""</span>, <span class="st">"NA"</span>, <span class="st">"N/A"</span>))</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>rats_clean <span class="ot">&lt;-</span> rats_raw <span class="sc">%&gt;%</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">created_date =</span> <span class="st">`</span><span class="at">Created Date</span><span class="st">`</span>,</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>         <span class="at">location_type =</span> <span class="st">`</span><span class="at">Location Type</span><span class="st">`</span>,</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>         <span class="at">borough =</span> Borough) <span class="sc">%&gt;%</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">created_date =</span> <span class="fu">as.POSIXct</span>(<span class="fu">strptime</span>(created_date, <span class="st">"%Y %b %d %I:%M:%S %p"</span>))) <span class="sc">%&gt;%</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">sighting_year =</span> <span class="fu">year</span>(created_date),</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>         <span class="at">sighting_month =</span> <span class="fu">month</span>(created_date),</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>         <span class="at">sighting_day =</span> <span class="fu">day</span>(created_date),</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>         <span class="at">sighting_weekday =</span> <span class="fu">wday</span>(created_date, <span class="at">label =</span> <span class="cn">TRUE</span>, <span class="at">abbr =</span> <span class="cn">FALSE</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(borough <span class="sc">!=</span> <span class="st">"Unspecified"</span>)</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>Zip_Code_Raw <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"Modified_Zip_Code_Tabulation_Areas__MODZCTA_.csv"</span>)</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(Zip_Code_Raw)[<span class="dv">1</span>] <span class="ot">&lt;-</span> (<span class="st">"Zip"</span>)</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>income <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"acs2024_5yr_B19013_86000US11423.csv"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">ZIP =</span> geoid, <span class="at">Median_Income =</span> B19013001)</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>pop <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"acs2024_5yr_B01003_86000US11423.csv"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">ZIP =</span> geoid, <span class="at">Population =</span> B01003001)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Connect to in-memory SQLite database</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>con <span class="ot">&lt;-</span> <span class="fu">dbConnect</span>(RSQLite<span class="sc">::</span><span class="fu">SQLite</span>(), <span class="st">":memory:"</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Load raw data into SQLite as tables</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="fu">dbWriteTable</span>(con, <span class="st">"rat_sightings"</span>, rats_clean)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="fu">dbWriteTable</span>(con, <span class="st">"income"</span>,        income)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="fu">dbWriteTable</span>(con, <span class="st">"population"</span>,    pop)</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Read, clean and split the .sql file into individual queries</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>sql_lines   <span class="ot">&lt;-</span> <span class="fu">readLines</span>(<span class="st">"queries.sql"</span>)</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>sql_lines   <span class="ot">&lt;-</span> sql_lines[<span class="sc">!</span><span class="fu">grepl</span>(<span class="st">"^</span><span class="sc">\\</span><span class="st">s*--"</span>, sql_lines)]</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>sql_text    <span class="ot">&lt;-</span> <span class="fu">paste</span>(sql_lines, <span class="at">collapse =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>sql_queries <span class="ot">&lt;-</span> <span class="fu">strsplit</span>(sql_text, <span class="st">";"</span>)[[<span class="dv">1</span>]]</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>sql_queries <span class="ot">&lt;-</span> <span class="fu">trimws</span>(sql_queries)</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>sql_queries <span class="ot">&lt;-</span> sql_queries[<span class="fu">nchar</span>(sql_queries) <span class="sc">&gt;</span> <span class="dv">0</span>]</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Execute each query and assign to named variables</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>rats_summary <span class="ot">&lt;-</span> <span class="fu">dbGetQuery</span>(con, sql_queries[[<span class="dv">1</span>]])  <span class="co"># borough/year aggregation</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>rat_yearly   <span class="ot">&lt;-</span> <span class="fu">dbGetQuery</span>(con, sql_queries[[<span class="dv">2</span>]])  <span class="co"># ZIP/year/borough aggregation</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>full_dataset <span class="ot">&lt;-</span> <span class="fu">dbGetQuery</span>(con, sql_queries[[<span class="dv">3</span>]])  <span class="co"># joined ZIP summary</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a><span class="fu">dbDisconnect</span>(con)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load shapefile and clean up</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>zips_sf <span class="ot">&lt;-</span> <span class="fu">st_as_sf</span>(Zip_Code_Raw, <span class="at">wkt =</span> <span class="st">"the_geom"</span>, <span class="at">crs =</span> <span class="dv">4326</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_make_valid</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">ZIP =</span> Zip) <span class="sc">%&gt;%</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">ZIP =</span> <span class="fu">as.character</span>(ZIP))</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Join geometry to full_dataset</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>full_dataset_sf <span class="ot">&lt;-</span> full_dataset <span class="sc">%&gt;%</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">ZIP =</span> <span class="fu">as.character</span>(ZIP)) <span class="sc">%&gt;%</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(zips_sf <span class="sc">%&gt;%</span> <span class="fu">select</span>(ZIP, the_geom), <span class="at">by =</span> <span class="st">"ZIP"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_as_sf</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span>ZIP <span class="sc">%in%</span> <span class="fu">c</span>(<span class="dv">11001</span>, <span class="dv">11040</span>, <span class="dv">11249</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="dv">2263</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">area_sqft        =</span> <span class="fu">as.numeric</span>(<span class="fu">st_area</span>(the_geom)),</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">area_sqmi        =</span> area_sqft <span class="sc">/</span> (<span class="dv">5280</span><span class="sc">^</span><span class="dv">2</span>),</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">area_sqkm        =</span> area_sqft <span class="sc">/</span> <span class="fl">10.7639</span> <span class="sc">/</span> <span class="fl">1e6</span>,</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">pop_density_sqmi =</span> Population <span class="sc">/</span> area_sqmi,</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">pop_density_sqkm =</span> Population <span class="sc">/</span> area_sqkm</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+</section>
+</section>
+<section id="tile-heat-map-by-borough-by-year" class="level2">
+<h2 class="anchored" data-anchor-id="tile-heat-map-by-borough-by-year">Tile Heat Map by Borough by Year</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Heatmap</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(rats_summary, <span class="fu">aes</span>(<span class="at">x =</span> Year, <span class="at">y =</span> borough, <span class="at">fill =</span> Sightings)) <span class="sc">+</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_tile</span>(<span class="at">color =</span> <span class="st">"white"</span>) <span class="sc">+</span>  </span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_text</span>(<span class="fu">aes</span>(<span class="at">label =</span> Sightings), <span class="at">color =</span> <span class="st">"black"</span>, <span class="at">size =</span> <span class="dv">4</span>) <span class="sc">+</span>  </span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_gradient</span>(<span class="at">low =</span> <span class="st">"white"</span>, <span class="at">high =</span> <span class="st">"darkred"</span>) <span class="sc">+</span> </span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Heatmap of Rat Sightings in NYC by Borough and Year"</span>,</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">"Year"</span>,</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Borough"</span>,</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>       <span class="at">fill =</span> <span class="st">"Sightings"</span>) <span class="sc">+</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">hjust =</span> <span class="fl">0.5</span>, <span class="at">face =</span> <span class="st">"bold"</span>, <span class="at">size =</span> <span class="dv">14</span>),</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">angle =</span> <span class="dv">45</span>, <span class="at">hjust =</span> <span class="dv">1</span>, <span class="at">size =</span> <span class="dv">10</span>),</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.text.y =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">10</span>),</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>        <span class="at">legend.title =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">10</span>),</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>        <span class="at">legend.text =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">9</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Rat_Analysis_files/figure-html/unnamed-chunk-2-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The heatmap shows the following:</p>
+<ul>
+<li><p>Brooklyn and Manhattan have the most rat sightings.</p></li>
+<li><p>There were major increases in rat reports during 2015-2017 throughout several boroughs.</p></li>
+<li><p>Queens and Staten Island have fewer rat sightings overall.</p></li>
+</ul>
+<p>Based on this, we can say that pest control teams should concentrate their efforts in the boroughs with the highest number of rats, mainly Brooklyn and Manhattan.</p>
+</section>
+<section id="rat-sightings-per-borough-over-time" class="level2">
+<h2 class="anchored" data-anchor-id="rat-sightings-per-borough-over-time">Rat Sightings Per Borough Over Time</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Line plot</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(rats_summary <span class="sc">%&gt;%</span> <span class="fu">filter</span>(Year <span class="sc">&lt;</span> <span class="dv">2026</span>), </span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>       <span class="fu">aes</span>(<span class="at">x =</span> Year, <span class="at">y =</span> Sightings, <span class="at">color =</span> borough)) <span class="sc">+</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="fu">paste</span>(<span class="st">"Trend of Rat Sightings in NYC ("</span>, </span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>                     <span class="fu">min</span>(rats_summary<span class="sc">$</span>Year), <span class="st">"-"</span>, </span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>                     <span class="fu">max</span>(rats_summary<span class="sc">$</span>Year[rats_summary<span class="sc">$</span>Year <span class="sc">&lt;</span> <span class="dv">2026</span>]), <span class="st">")"</span>),</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">"Year"</span>,</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Number of Sightings"</span>,</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>       <span class="at">color =</span> <span class="st">"Borough"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Rat_Analysis_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The above graph illustrates the large and steady quantity difference in rat sightings between boroughs over time. We see that Brooklyn has consistently had the largest number of rat sightings for each year recorded, followed by Manhattan, Bronx, Queens and Staten Island respectively. Over time, there hasn’t been much change in this order, with Queens and the Bronx close for 3rd place.</p>
+</section>
+<section id="choropleth-map-of-sightings" class="level2">
+<h2 class="anchored" data-anchor-id="choropleth-map-of-sightings">Choropleth Map of Sightings</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Create heatmap with zip plotting</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">inherits</span>(full_dataset_sf, <span class="st">"sf"</span>)) {</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  full_dataset_sf <span class="ot">&lt;-</span> <span class="fu">st_as_sf</span>(full_dataset_sf, <span class="at">wkt =</span> <span class="st">"the_geom"</span>, <span class="at">crs =</span> <span class="dv">4326</span>)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>full_dataset_sf_plot <span class="ot">&lt;-</span> <span class="fu">st_transform</span>(full_dataset_sf, <span class="dv">3857</span>)</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>metric <span class="ot">&lt;-</span> <span class="st">"Sightings_per_1000_per_Year"</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>p_cont <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(full_dataset_sf_plot) <span class="sc">+</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_sf</span>(<span class="fu">aes</span>(<span class="at">fill =</span> .data[[metric]]), <span class="at">color =</span> <span class="st">"white"</span>, <span class="at">linewidth =</span> <span class="fl">0.2</span>) <span class="sc">+</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_viridis</span>(</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">option =</span> <span class="st">"C"</span>, <span class="at">direction =</span> <span class="dv">1</span>,</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">na.value =</span> <span class="st">"grey90"</span>,</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">name =</span> <span class="fu">label_wrap</span>(<span class="dv">30</span>)(<span class="st">"Average # of Rats Reported Every Year, Per 1000 People"</span>)</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Rat Sightings by ZIP Code"</span>,</span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">"Heatmap (continuous scale)"</span>,</span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">caption =</span> <span class="st">"Source: NYC 311 Rat Sightings; Author’s calculations"</span></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_void</span>(<span class="at">base_size =</span> <span class="dv">12</span>) <span class="sc">+</span></span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.position =</span> <span class="st">"right"</span>,</span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.title =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">16</span>, <span class="at">face =</span> <span class="st">"bold"</span>),</span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.text  =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">14</span>)</span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">guides</span>(<span class="at">fill =</span> <span class="fu">guide_colorbar</span>(<span class="at">title.position =</span> <span class="st">"top"</span>,</span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>                               <span class="at">barheight =</span> <span class="fu">unit</span>(<span class="dv">6</span>, <span class="st">"cm"</span>),</span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a>                               <span class="at">barwidth  =</span> <span class="fu">unit</span>(<span class="fl">0.8</span>, <span class="st">"cm"</span>)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>p_cont</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="Rat_Analysis_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figcaption>Rat sightings per 1,000 residents by ZIP</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>The above heat map illustrates exactly where rat sightings are in the 5 boroughs. It is calculated by averaging total rat calls by the 5 years the data was collected, then adjusting per 1000 people in order to standardize for population.</p>
+</section>
+<section id="regression-model-results" class="level2">
+<h2 class="anchored" data-anchor-id="regression-model-results">Regression Model Results</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>dat <span class="ot">&lt;-</span> full_dataset_sf <span class="sc">|&gt;</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_drop_geometry</span>() <span class="sc">|&gt;</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">pop_density_k =</span> pop_density_sqkm <span class="sc">/</span> <span class="dv">1000</span>,     <span class="co"># per 1,000 people/km²</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">Median_Income =</span> Median_Income,      </span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">borough =</span> <span class="fu">fct_relevel</span>(borough, <span class="st">"BRONX"</span>)      <span class="co"># pick your reference explicitly</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>m0  <span class="ot">&lt;-</span> <span class="fu">lm</span>(Sightings_per_1000_per_Year <span class="sc">~</span> Median_Income <span class="sc">+</span> pop_density_k, <span class="at">data =</span> dat)</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>mFE <span class="ot">&lt;-</span> <span class="fu">lm</span>(Sightings_per_1000_per_Year <span class="sc">~</span> Median_Income <span class="sc">+</span> pop_density_k <span class="sc">+</span> borough, <span class="at">data =</span> dat)</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a><span class="fu">modelsummary</span>(</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(<span class="st">"Baseline"</span> <span class="ot">=</span> m0, <span class="st">"Borough FE"</span> <span class="ot">=</span> mFE),</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">vcov =</span> <span class="st">"HC3"</span>,                      <span class="co"># robust SEs</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">statistic =</span> <span class="st">"({std.error})"</span>,</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>  <span class="at">stars =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>  <span class="at">coef_map =</span> <span class="fu">c</span>(</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>    <span class="st">"(Intercept)"</span>    <span class="ot">=</span> <span class="st">"Intercept"</span>,</span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Median_Income"</span><span class="ot">=</span> <span class="st">"Median income (per $1k)"</span>,</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>    <span class="st">"pop_density_k"</span>  <span class="ot">=</span> <span class="st">"Pop. density (per 1k/km²)"</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>  <span class="at">gof_map =</span> <span class="fu">c</span>(<span class="st">"nobs"</span>,<span class="st">"r.squared"</span>,<span class="st">"adj.r.squared"</span>,<span class="st">"AIC"</span>,<span class="st">"BIC"</span>,<span class="st">"rmse"</span>),</span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>  <span class="at">output =</span> <span class="st">"markdown"</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<!-- preamble start -->
+
+    <script>
+
+      function styleCell_1qc9w8vcxw80p267k8va(i, j, css_id) {
+          var table = document.getElementById("tinytable_1qc9w8vcxw80p267k8va");
+          var cell = table.querySelector(`[data-row="${i}"][data-col="${j}"]`);
+          if (cell) {
+              console.log(`Styling cell at (${i}, ${j}) with class ${css_id}`);
+              cell.classList.add(css_id);
+          } else {
+              console.warn(`Cell at (${i}, ${j}) not found.`);
+          }
+      }
+      function spanCell_1qc9w8vcxw80p267k8va(i, j, rowspan, colspan) {
+        var table = document.getElementById("tinytable_1qc9w8vcxw80p267k8va");
+        const targetCell = table.querySelector(`[data-row="${i}"][data-col="${j}"]`);
+        if (!targetCell) {
+          console.warn(`Cell at (${i}, ${j}) not found.`);
+        }
+
+        // Get all cells that need to be removed
+        const cellsToRemove = [];
+        for (let r = 0; r < rowspan; r++) {
+          for (let c = 0; c < colspan; c++) {
+            if (r === 0 && c === 0) continue; // Skip the target cell
+            const cell = table.querySelector(`[data-row="${i + r}"][data-col="${j + c}"]`);
+            if (cell) {
+              cellsToRemove.push(cell);
+            }
+          }
+        }
+
+        // Remove all cells
+        cellsToRemove.forEach(cell => cell.remove());
+
+        // Set rowspan and colspan of the target cell if it exists
+        if (targetCell) {
+          targetCell.rowSpan = rowspan;
+          targetCell.colSpan = colspan;
+        }
+      }
+      // tinytable span after
+      window.addEventListener('load', function () {
+          var cellsToStyle = [
+            // tinytable style arrays after
+          { positions: [ { i: '10', j: 1 }, { i: '10', j: 2 },  ], css_id: 'tinytable_css_b7fkjf52k5h10c9w2lnf',}, 
+          { positions: [ { i: '6', j: 1 }, { i: '6', j: 2 },  ], css_id: 'tinytable_css_7fs83hjnhmoajnwom1n2',}, 
+          { positions: [ { i: '1', j: 1 }, { i: '2', j: 1 }, { i: '4', j: 1 }, { i: '5', j: 1 }, { i: '3', j: 2 }, { i: '3', j: 1 }, { i: '8', j: 1 }, { i: '9', j: 1 }, { i: '7', j: 2 }, { i: '7', j: 1 }, { i: '1', j: 2 }, { i: '2', j: 2 }, { i: '4', j: 2 }, { i: '5', j: 2 }, { i: '8', j: 2 }, { i: '9', j: 2 },  ], css_id: 'tinytable_css_ejrm8kfud8339ex2ho1b',}, 
+          { positions: [ { i: '0', j: 1 }, { i: '0', j: 2 },  ], css_id: 'tinytable_css_xzgunu2yez4r745h6ft5',}, 
+          { positions: [ { i: '10', j: 0 },  ], css_id: 'tinytable_css_rb7j36f6eo6r2k4f5c4i',}, 
+          { positions: [ { i: '6', j: 0 },  ], css_id: 'tinytable_css_m1755dj06db66yylqbtg',}, 
+          { positions: [ { i: '1', j: 0 }, { i: '2', j: 0 }, { i: '3', j: 0 }, { i: '4', j: 0 }, { i: '5', j: 0 }, { i: '7', j: 0 }, { i: '8', j: 0 }, { i: '9', j: 0 },  ], css_id: 'tinytable_css_s6ihckf3z6xvhrpfg0nr',}, 
+          { positions: [ { i: '0', j: 0 },  ], css_id: 'tinytable_css_47rz2p8wx8cndy2hg4hi',}, 
+          ];
+
+          // Loop over the arrays to style the cells
+          cellsToStyle.forEach(function (group) {
+              group.positions.forEach(function (cell) {
+                  styleCell_1qc9w8vcxw80p267k8va(cell.i, cell.j, group.css_id);
+              });
+          });
+      });
+    </script>
+
+    <style>
+      /* tinytable css entries after */
+      .table td.tinytable_css_b7fkjf52k5h10c9w2lnf, .table th.tinytable_css_b7fkjf52k5h10c9w2lnf { text-align: center; border-bottom: solid #d3d8dc 0.1em; }
+      .table td.tinytable_css_7fs83hjnhmoajnwom1n2, .table th.tinytable_css_7fs83hjnhmoajnwom1n2 { text-align: center; border-bottom: solid black 0.05em; }
+      .table td.tinytable_css_ejrm8kfud8339ex2ho1b, .table th.tinytable_css_ejrm8kfud8339ex2ho1b { text-align: center; }
+      .table td.tinytable_css_xzgunu2yez4r745h6ft5, .table th.tinytable_css_xzgunu2yez4r745h6ft5 { text-align: center; border-top: solid #d3d8dc 0.1em; border-bottom: solid #d3d8dc 0.05em; }
+      .table td.tinytable_css_rb7j36f6eo6r2k4f5c4i, .table th.tinytable_css_rb7j36f6eo6r2k4f5c4i { text-align: left; border-bottom: solid #d3d8dc 0.1em; }
+      .table td.tinytable_css_m1755dj06db66yylqbtg, .table th.tinytable_css_m1755dj06db66yylqbtg { text-align: left; border-bottom: solid black 0.05em; }
+      .table td.tinytable_css_s6ihckf3z6xvhrpfg0nr, .table th.tinytable_css_s6ihckf3z6xvhrpfg0nr { text-align: left; }
+      .table td.tinytable_css_47rz2p8wx8cndy2hg4hi, .table th.tinytable_css_47rz2p8wx8cndy2hg4hi { text-align: left; border-top: solid #d3d8dc 0.1em; border-bottom: solid #d3d8dc 0.05em; }
+    </style>
+    <div class="container">
+      <table class="table table-borderless" id="tinytable_1qc9w8vcxw80p267k8va" style="width: auto; margin-left: auto; margin-right: auto;" data-quarto-disable-processing="true">
+        <thead>
+        
+              <tr>
+                <th scope="col" data-row="0" data-col="0"> </th>
+                <th scope="col" data-row="0" data-col="1">Baseline</th>
+                <th scope="col" data-row="0" data-col="2">Borough FE</th>
+              </tr>
+        </thead>
+        <tfoot><tr><td colspan="3">+ p &lt; 0.1, * p &lt; 0.05, ** p &lt; 0.01, *** p &lt; 0.001</td></tr></tfoot>
+        <tbody>
+                <tr>
+                  <td data-row="1" data-col="0">Intercept</td>
+                  <td data-row="1" data-col="1">0.861*</td>
+                  <td data-row="1" data-col="2">0.840</td>
+                </tr>
+                <tr>
+                  <td data-row="2" data-col="0"></td>
+                  <td data-row="2" data-col="1">(0.357)</td>
+                  <td data-row="2" data-col="2">(0.528)</td>
+                </tr>
+                <tr>
+                  <td data-row="3" data-col="0">Median income (per $1k)</td>
+                  <td data-row="3" data-col="1">0.000</td>
+                  <td data-row="3" data-col="2">0.000</td>
+                </tr>
+                <tr>
+                  <td data-row="4" data-col="0"></td>
+                  <td data-row="4" data-col="1">(0.000)</td>
+                  <td data-row="4" data-col="2">(0.000)</td>
+                </tr>
+                <tr>
+                  <td data-row="5" data-col="0">Pop. density (per 1k/km²)</td>
+                  <td data-row="5" data-col="1">0.068***</td>
+                  <td data-row="5" data-col="2">0.062***</td>
+                </tr>
+                <tr>
+                  <td data-row="6" data-col="0"></td>
+                  <td data-row="6" data-col="1">(0.011)</td>
+                  <td data-row="6" data-col="2">(0.017)</td>
+                </tr>
+                <tr>
+                  <td data-row="7" data-col="0">Num.Obs.</td>
+                  <td data-row="7" data-col="1">171</td>
+                  <td data-row="7" data-col="2">171</td>
+                </tr>
+                <tr>
+                  <td data-row="8" data-col="0">R2</td>
+                  <td data-row="8" data-col="1">0.227</td>
+                  <td data-row="8" data-col="2">0.309</td>
+                </tr>
+                <tr>
+                  <td data-row="9" data-col="0">R2 Adj.</td>
+                  <td data-row="9" data-col="1">0.218</td>
+                  <td data-row="9" data-col="2">0.284</td>
+                </tr>
+                <tr>
+                  <td data-row="10" data-col="0">RMSE</td>
+                  <td data-row="10" data-col="1">1.48</td>
+                  <td data-row="10" data-col="2">1.40</td>
+                </tr>
+        </tbody>
+      </table>
+    </div>
+<!-- hack to avoid NA insertion in last line -->
+</div>
+</div>
+<p>The regression results confirm that population density is positively associated with rat complaint rates. In the baseline model, <strong>a 1,000 person/km² increase in density predicts +0.068 additional sightings per 1,000 residents per year</strong> (p &lt; 0.001). Adding borough fixed effects slightly reduces this to 0.062 (p &lt; 0.001), suggesting the density effect is robust even after accounting for borough-level differences. Median income is indistinguishable from zero across both model specifications and is not statistically significant. Adding borough indicators improved model fit from R² = 0.227 to 0.309. Estimates are descriptive rather than causal.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>zip_density <span class="ot">&lt;-</span> full_dataset_sf <span class="sc">%&gt;%</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_drop_geometry</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(ZIP, Sightings_per_1000_per_Year, pop_density_sqkm, Median_Income) <span class="sc">%&gt;%</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>(ZIP, <span class="at">.keep_all =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>rats_with_density <span class="ot">&lt;-</span> rat_yearly <span class="sc">%&gt;%</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(ZIP <span class="sc">%in%</span> zip_density<span class="sc">$</span>ZIP) <span class="sc">%&gt;%</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(zip_density, <span class="at">by =</span> <span class="st">"ZIP"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+</section>
+<section id="correlation-scatterplot" class="level2">
+<h2 class="anchored" data-anchor-id="correlation-scatterplot">Correlation Scatterplot</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Correlation scatterplot</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">ggscatter</span>(</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  rats_with_density,</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">x =</span> <span class="st">"pop_density_sqkm"</span>,</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">y =</span> <span class="st">"Sightings_per_1000_per_Year"</span>,</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">add =</span> <span class="st">"reg.line"</span>,</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">conf.int =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">color =</span> <span class="st">"#0072B2"</span>,  </span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">add.params =</span> <span class="fu">list</span>(<span class="at">color =</span> <span class="st">"#D55E00"</span>, <span class="at">linewidth =</span> <span class="fl">1.1</span>),</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">xlab =</span> <span class="st">"Population density (people per km²)"</span>,</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">ylab =</span> <span class="st">"Rat sightings per 1,000 residents"</span>,</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">title =</span> <span class="st">"Correlation between Density and Rat Sightings"</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>) <span class="sc">+</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_cor</span>(<span class="at">method =</span> <span class="st">"pearson"</span>, <span class="at">label.x.npc =</span> <span class="st">"left"</span>, <span class="at">label.y.npc =</span> <span class="st">"top"</span>) <span class="sc">+</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_pubr</span>(<span class="at">base_size =</span> <span class="dv">12</span>) <span class="sc">+</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Rat_Analysis_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Denser ZIP codes report more rat sightings per capita. The relationship is moderate and positive (R = 0.45), consistent with the fitted line and confidence band. Dispersion widens at higher densities, so effects are not uniform across neighborhoods.</p>
+</section>
+<section id="correlation-of-sightings-with-density-vs-income" class="level2">
+<h2 class="anchored" data-anchor-id="correlation-of-sightings-with-density-vs-income">Correlation of Sightings with Density vs Income</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">#1st plot density vs sightings</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>p_density <span class="ot">&lt;-</span> <span class="fu">ggscatter</span>(</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  rats_with_density,</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">x =</span> <span class="st">"pop_density_sqkm"</span>,</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">y =</span> <span class="st">"Sightings_per_1000_per_Year"</span>,</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">add =</span> <span class="st">"reg.line"</span>,</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">conf.int =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">xlab =</span> <span class="st">"Population density (people per km²)"</span>,</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">ylab =</span> <span class="st">"Rat sightings per 1,000 residents"</span>,</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">title =</span> <span class="st">"Density vs Sightings"</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>) <span class="sc">+</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_cor</span>(<span class="at">method =</span> <span class="st">"pearson"</span>, <span class="at">label.x.npc =</span> <span class="st">"left"</span>, <span class="at">label.y.npc =</span> <span class="st">"top"</span>) <span class="sc">+</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">labels =</span> <span class="fu">label_comma</span>()) <span class="sc">+</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_pubr</span>(<span class="at">base_size =</span> <span class="dv">12</span>) <span class="sc">+</span></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>)</span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a><span class="co">#2nd plot Income vs Sightings</span></span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>p_income <span class="ot">&lt;-</span> <span class="fu">ggscatter</span>(</span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>  rats_with_density,</span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>  <span class="at">x =</span> <span class="st">"Median_Income"</span>,</span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>  <span class="at">y =</span> <span class="st">"Sightings_per_1000_per_Year"</span>,</span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>  <span class="at">add =</span> <span class="st">"reg.line"</span>,</span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>  <span class="at">conf.int =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>  <span class="at">xlab =</span> <span class="st">"Median household income (USD)"</span>,</span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a>  <span class="at">ylab =</span> <span class="st">"Rat sightings per 1,000 residents"</span>,</span>
+<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a>  <span class="at">title =</span> <span class="st">"Income vs Sightings"</span></span>
+<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a>) <span class="sc">+</span></span>
+<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_cor</span>(<span class="at">method =</span> <span class="st">"pearson"</span>, <span class="at">label.x.npc =</span> <span class="st">"left"</span>, <span class="at">label.y.npc =</span> <span class="st">"top"</span>) <span class="sc">+</span></span>
+<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">labels =</span> <span class="fu">label_dollar</span>(<span class="at">accuracy =</span> <span class="dv">1</span>)) <span class="sc">+</span></span>
+<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_pubr</span>(<span class="at">base_size =</span> <span class="dv">12</span>) <span class="sc">+</span></span>
+<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>)</span>
+<span id="cb11-34"><a href="#cb11-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-35"><a href="#cb11-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-36"><a href="#cb11-36" aria-hidden="true" tabindex="-1"></a><span class="co"># Side by Side for dramatic effect</span></span>
+<span id="cb11-37"><a href="#cb11-37" aria-hidden="true" tabindex="-1"></a>paired <span class="ot">&lt;-</span> <span class="fu">ggarrange</span>(</span>
+<span id="cb11-38"><a href="#cb11-38" aria-hidden="true" tabindex="-1"></a>  p_density, p_income,</span>
+<span id="cb11-39"><a href="#cb11-39" aria-hidden="true" tabindex="-1"></a>  <span class="at">ncol =</span> <span class="dv">2</span>, <span class="at">nrow =</span> <span class="dv">1</span>,</span>
+<span id="cb11-40"><a href="#cb11-40" aria-hidden="true" tabindex="-1"></a>  <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"A"</span>, <span class="st">"B"</span>),</span>
+<span id="cb11-41"><a href="#cb11-41" aria-hidden="true" tabindex="-1"></a>  <span class="at">align =</span> <span class="st">"hv"</span></span>
+<span id="cb11-42"><a href="#cb11-42" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb11-43"><a href="#cb11-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-44"><a href="#cb11-44" aria-hidden="true" tabindex="-1"></a><span class="fu">annotate_figure</span>(</span>
+<span id="cb11-45"><a href="#cb11-45" aria-hidden="true" tabindex="-1"></a>  paired,</span>
+<span id="cb11-46"><a href="#cb11-46" aria-hidden="true" tabindex="-1"></a>  <span class="at">top =</span> <span class="fu">text_grob</span>(<span class="st">"Correlation of Rat Sightings with Density and Income"</span>,</span>
+<span id="cb11-47"><a href="#cb11-47" aria-hidden="true" tabindex="-1"></a>                  <span class="at">face =</span> <span class="st">"bold"</span>, <span class="at">size =</span> <span class="dv">14</span>),</span>
+<span id="cb11-48"><a href="#cb11-48" aria-hidden="true" tabindex="-1"></a>  <span class="at">bottom =</span> <span class="fu">text_grob</span>(<span class="st">"Points = ZIPs; line = OLS with 95% CI"</span>, <span class="at">size =</span> <span class="dv">10</span>)</span>
+<span id="cb11-49"><a href="#cb11-49" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Rat_Analysis_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Panel A shows a clear, positive association: denser ZIPs tend to report more rat sightings per capita. The spread widens at higher densities (fan shape), so variance is larger in dense areas—reason to use robust SEs in regressions. Panel B is essentially flat: income is not correlated with sightings in these data (R ≈ 0, p ≈ 0.99). Any relationship between income and complaints is either negligible or swamped by other factors like density, building stock, or reporting behavior.</p>
+</section>
+<section id="mapped-excess-rat-sightings-relative-to-density" class="level2">
+<h2 class="anchored" data-anchor-id="mapped-excess-rat-sightings-relative-to-density">Mapped Excess Rat Sightings Relative to Density</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(colorspace)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>df_mod <span class="ot">&lt;-</span> <span class="fu">st_drop_geometry</span>(full_dataset_sf)</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>mod <span class="ot">&lt;-</span> <span class="fu">lm</span>(Sightings_per_1000_per_Year <span class="sc">~</span> <span class="fu">log1p</span>(pop_density_sqkm) <span class="sc">+</span> borough, <span class="at">data =</span> df_mod)</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>df_mod<span class="sc">$</span>pred   <span class="ot">&lt;-</span> <span class="fu">predict</span>(mod, <span class="at">newdata =</span> df_mod)</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>df_mod<span class="sc">$</span>resid  <span class="ot">&lt;-</span> df_mod<span class="sc">$</span>Sightings_per_1000_per_Year <span class="sc">-</span> df_mod<span class="sc">$</span>pred</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>df_mod<span class="sc">$</span>resid_z <span class="ot">&lt;-</span> (df_mod<span class="sc">$</span>resid <span class="sc">-</span> <span class="fu">mean</span>(df_mod<span class="sc">$</span>resid, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)) <span class="sc">/</span> <span class="fu">sd</span>(df_mod<span class="sc">$</span>resid, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Join back to geometry</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>map_resid <span class="ot">&lt;-</span> full_dataset_sf <span class="sc">|&gt;</span> <span class="fu">select</span>(ZIP, <span class="at">geometry =</span> the_geom) <span class="sc">|&gt;</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(df_mod <span class="sc">|&gt;</span> <span class="fu">select</span>(ZIP, resid_z), <span class="at">by =</span> <span class="st">"ZIP"</span>)</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(map_resid) <span class="sc">+</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_sf</span>(<span class="fu">aes</span>(<span class="at">fill =</span> resid_z), <span class="at">color =</span> <span class="st">"white"</span>, <span class="at">linewidth =</span> <span class="fl">0.25</span>) <span class="sc">+</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a><span class="fu">scale_fill_continuous_divergingx</span>(</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">palette =</span> <span class="st">"PuOr"</span>,   </span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">mid =</span> <span class="dv">0</span>,                  </span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">limits =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">3</span>, <span class="dv">3</span>),</span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">breaks =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">2</span>, <span class="sc">-</span><span class="dv">1</span>, <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">2</span>),</span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">oob =</span> scales<span class="sc">::</span>squish,</span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">na.value =</span> <span class="st">"grey95"</span>,</span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">name =</span> <span class="st">"Excess sightings</span><span class="sc">\n</span><span class="st">(rel. to density)</span><span class="sc">\n</span><span class="st">Z-score"</span></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_void</span>() <span class="sc">+</span></span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.title =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">16</span>, <span class="at">face =</span> <span class="st">"bold"</span>),</span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.text  =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">14</span>),</span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.key.width =</span> <span class="fu">unit</span>(<span class="fl">0.6</span>, <span class="st">"cm"</span>),</span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.key.height =</span> <span class="fu">unit</span>(<span class="fl">1.2</span>, <span class="st">"cm"</span>)</span>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Rat_Analysis_files/figure-html/residual-map-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>This map highlights where sightings are unusually high or low after accounting for density. Dark purples represent ZIPs that have larger than expected complaint rates given how dense they are, while oranges mark places that report less than expected. Clustering suggests localized conditions like building stock, sanitation practices, enforcement, or reporting behavior influence sightings instead of density alone.</p>
+</section>
+<section id="conclusions" class="level2">
+<h2 class="anchored" data-anchor-id="conclusions">Conclusions</h2>
+<p><strong>Population density is the strongest predictor of rat complaint rates across NYC ZIP codes</strong>. A regression model controlling for borough fixed effects finds that each <strong>1,000 person/km² increase in density</strong> is associated with approximately <strong>0.062 additional sightings per 1,000 residents per year</strong>. Controlling for borough provided additional variation beyond density alone. This points to localized factors such as building stock, sanitation infrastructure, and reporting behavior that density alone cannot capture. Median income adds no explanatory power across either model specification.</p>
+<p>These results suggest pest control resources would be most efficiently directed toward <strong>high-density neighborhoods in Brooklyn and Manhattan</strong>. However, the residual map highlights that <strong>certain ZIP codes report far more or fewer sightings than their density would predict</strong>. This would suggest targeted local investigations are warranted instead of broad density-based allocation. Results should be interpreted as <strong>descriptive rather than causal</strong>.</p>
+</section>
+
+</main>
+<!-- /main column -->
+<button id="code-toggle" onclick="toggleCode()" style="
+
+  position: fixed;
+
+  bottom: 30px;
+
+  right: 30px;
+
+  z-index: 9999;
+
+  background: #2c3e50;
+
+  color: white;
+
+  border: none;
+
+  padding: 10px 16px;
+
+  border-radius: 8px;
+
+  cursor: pointer;
+
+  font-size: 13px;
+
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+
+">Show Code</button>
+
+
+
+<script>
+
+  let codeVisible = false;
+
+  function toggleCode() {
+
+    const details = document.querySelectorAll('details.code-fold');
+
+    codeVisible = !codeVisible;
+
+    details.forEach(d => d.open = codeVisible);
+
+    document.getElementById('code-toggle').textContent = codeVisible ? 'Hide Code' : 'Show Code';
+
+  }
+
+</script>
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+<script src="Rat_Analysis_files/libs/quarto-html/zenscroll-min.js"></script>
+</body></html>

@@ -1,0 +1,12 @@
+/* Make specific map figures break out of content column */
+.wide-figure {
+  width: 100vw !important;
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.wide-figure img {
+  width: 100% !important;
+  height: auto !important;
+}
